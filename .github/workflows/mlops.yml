@@ -49,7 +49,7 @@ jobs:
       run: |
         aws ecr get-login-password --region ap-south-1 | docker login \
         --username AWS \
-        --password-stdin ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com
+        --password-stdin 861550625988.dkr.ecr.ap-south-1.amazonaws.com
 
     ###################################
     # Build Docker Image
