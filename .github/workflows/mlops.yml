@@ -35,7 +35,7 @@ jobs:
     ###################################
     - name: Train Model
       run: |
-        python train.py
+        python3 train.py
 
     ###################################
     # Upload Artifact To S3
