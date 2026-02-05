@@ -1,0 +1,77 @@
+name: MLOps Full Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  train-build-deploy:
+
+    runs-on: self-hosted
+
+    steps:
+
+    ###################################
+    # Checkout Code
+    ###################################
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    ###################################
+    # Install Python Dependencies
+    ###################################
+    - name: Install Python Packages
+      run: |
+        python3 -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    ###################################
+    # Train Model
+    ###################################
+    - name: Train Model
+      run: |
+        python train.py
+
+    ###################################
+    # Upload Artifact To S3
+    ###################################
+    - name: Upload Model To S3
+      run: |
+        aws s3 cp model.pkl s3://health-trainmodel/artifacts/model.pkl
+        aws s3 cp vectorizer.pkl s3://health-trainmodel/artifacts/vectorizer.pkl
+
+    ###################################
+    # Login To ECR
+    ###################################
+    - name: Login ECR
+      run: |
+        aws ecr get-login-password --region ap-south-1 | docker login \
+        --username AWS \
+        --password-stdin ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com
+
+    ###################################
+    # Build Docker Image
+    ###################################
+    - name: Build Docker Image
+      run: |
+        docker build -t 861550625988.dkr.ecr.ap-south-1.amazonaws.com/mlhealth .
+
+  
+
+    ###################################
+    # Push Docker Image
+    ###################################
+    - name: Push To ECR
+      run: |
+        docker push 861550625988.dkr.ecr.ap-south-1.amazonaws.com/mlhealth
+
+    ###################################
+    # Run Container Locally (Self Hosted EC2)
+    ###################################
+    - name: Run Container
+      run: |
+        
+        docker run -d -p 8000:8000 --name ml-health \
+        861550625988.dkr.ecr.ap-south-1.amazonaws.com/mlhealth
