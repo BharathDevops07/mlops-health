@@ -46,8 +46,8 @@ jobs:
     ###################################
     - name: Upload Model To S3
       run: |
-        aws s3 cp model.pkl s3://health-trainmodel/artifacts/model.pkl
-        aws s3 cp vectorizer.pkl s3://health-trainmodel/artifacts/vectorizer.pkl
+        aws s3 cp model.pkl s3://helath-trainmodel/artifacts/model.pkl
+        aws s3 cp vectorizer.pkl s3://helath-trainmodel/artifacts/vectorizer.pkl
 
     ###################################
     # 5. Login To ECR
