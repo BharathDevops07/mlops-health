@@ -81,5 +81,6 @@ jobs:
       
         
         echo "Starting new container..."
+        docker rm -f ml-health
         docker run -d -p 8000:8000 --name ml-health \
         861550625988.dkr.ecr.ap-south-1.amazonaws.com/mlhealth
