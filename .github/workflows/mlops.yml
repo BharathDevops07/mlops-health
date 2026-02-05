@@ -1,4 +1,4 @@
-name: MLOps Full Pipeline
+name: MLOps Deploy Only Pipeline
 
 on:
   push:
@@ -7,10 +7,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  train-build-deploy:
+  build-deploy:
     runs-on: self-hosted
 
     steps:
+
     ###################################
     # 1. Checkout Code
     ###################################
@@ -18,39 +19,19 @@ jobs:
       uses: actions/checkout@v4
 
     ###################################
-    # 2. Install Python Dependencies
+    # 2. Download Artifacts FROM S3
     ###################################
-    # 🟩 FIX: Cleans old venv to prevent conflicts
-    - name: Install Python Packages
+    - name: Download Model From S3
       run: |
-        echo "Cleaning previous virtual environment..."
-        rm -rf venv
-        
-        echo "Creating new virtual environment..."
-        python3 -m venv venv
-        
-        echo "Installing dependencies..."
-        venv/bin/pip install --upgrade pip
-        venv/bin/pip install -r requirements.txt
+        echo "Downloading artifacts from S3..."
+        aws s3 cp s3://helath-trainmodel/artifacts/model.pkl .
+        aws s3 cp s3://helath-trainmodel/artifacts/vectorizer.pkl .
+
+        echo "Listing downloaded files..."
+        ls -ltr
 
     ###################################
-    # 3. Train Model
-    ###################################
-    # 🟩 FIX: Uses 'venv/bin/python3' instead of system 'python3'
-    - name: Train Model
-      run: |
-        venv/bin/python3 train.py
-
-    ###################################
-    # 4. Upload Artifact To S3
-    ###################################
-    - name: Upload Model To S3
-      run: |
-        aws s3 cp model.pkl s3://helath-trainmodel/artifacts/model.pkl
-        aws s3 cp vectorizer.pkl s3://helath-trainmodel/artifacts/vectorizer.pkl
-
-    ###################################
-    # 5. Login To ECR
+    # 3. Login To ECR
     ###################################
     - name: Login ECR
       run: |
@@ -59,28 +40,26 @@ jobs:
         --password-stdin 861550625988.dkr.ecr.ap-south-1.amazonaws.com
 
     ###################################
-    # 6. Build Docker Image
+    # 4. Build Docker Image
     ###################################
     - name: Build Docker Image
       run: |
         docker build -t 861550625988.dkr.ecr.ap-south-1.amazonaws.com/mlhealth .
 
     ###################################
-    # 7. Push Docker Image
+    # 5. Push Docker Image
     ###################################
     - name: Push To ECR
       run: |
         docker push 861550625988.dkr.ecr.ap-south-1.amazonaws.com/mlhealth
 
     ###################################
-    # 8. Run Container Locally (Self Hosted EC2)
+    # 6. Run Container Locally
     ###################################
-    # 🟩 FIX: Stops/Removes old container to prevent naming conflict
     - name: Run Container
       run: |
-      
         
+
         echo "Starting new container..."
-        docker rm -f ml-health
         docker run -d -p 8000:8000 --name ml-health \
         861550625988.dkr.ecr.ap-south-1.amazonaws.com/mlhealth
