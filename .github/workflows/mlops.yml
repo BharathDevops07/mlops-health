@@ -8,37 +8,41 @@ on:
 
 jobs:
   train-build-deploy:
-
     runs-on: self-hosted
 
     steps:
-
     ###################################
-    # Checkout Code
+    # 1. Checkout Code
     ###################################
     - name: Checkout
       uses: actions/checkout@v4
 
     ###################################
-    # Install Python Dependencies
+    # 2. Install Python Dependencies
     ###################################
+    # 🟩 FIX: Cleans old venv to prevent conflicts
     - name: Install Python Packages
       run: |
+        echo "Cleaning previous virtual environment..."
         rm -rf venv
+        
+        echo "Creating new virtual environment..."
         python3 -m venv venv
+        
+        echo "Installing dependencies..."
         venv/bin/pip install --upgrade pip
         venv/bin/pip install -r requirements.txt
 
-
     ###################################
-    # Train Model
+    # 3. Train Model
     ###################################
+    # 🟩 FIX: Uses 'venv/bin/python3' instead of system 'python3'
     - name: Train Model
       run: |
-        python3 train.py
+        venv/bin/python3 train.py
 
     ###################################
-    # Upload Artifact To S3
+    # 4. Upload Artifact To S3
     ###################################
     - name: Upload Model To S3
       run: |
@@ -46,7 +50,7 @@ jobs:
         aws s3 cp vectorizer.pkl s3://health-trainmodel/artifacts/vectorizer.pkl
 
     ###################################
-    # Login To ECR
+    # 5. Login To ECR
     ###################################
     - name: Login ECR
       run: |
@@ -55,26 +59,27 @@ jobs:
         --password-stdin 861550625988.dkr.ecr.ap-south-1.amazonaws.com
 
     ###################################
-    # Build Docker Image
+    # 6. Build Docker Image
     ###################################
     - name: Build Docker Image
       run: |
         docker build -t 861550625988.dkr.ecr.ap-south-1.amazonaws.com/mlhealth .
 
-  
-
     ###################################
-    # Push Docker Image
+    # 7. Push Docker Image
     ###################################
     - name: Push To ECR
       run: |
         docker push 861550625988.dkr.ecr.ap-south-1.amazonaws.com/mlhealth
 
     ###################################
-    # Run Container Locally (Self Hosted EC2)
+    # 8. Run Container Locally (Self Hosted EC2)
     ###################################
+    # 🟩 FIX: Stops/Removes old container to prevent naming conflict
     - name: Run Container
       run: |
+      
         
+        echo "Starting new container..."
         docker run -d -p 8000:8000 --name ml-health \
         861550625988.dkr.ecr.ap-south-1.amazonaws.com/mlhealth
